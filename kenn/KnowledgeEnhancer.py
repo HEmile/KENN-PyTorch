@@ -26,7 +26,7 @@ class KnowledgeEnhancer(torch.nn.Module):
             self.clause_enhancers.append(ClauseEnhancer(
                 predicates, clause[:-1], initial_clause_weight))
 
-    def __call__(self, ground_atoms: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
+    def forward(self, ground_atoms: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: final delta values"""

@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from kenn import KnowledgeEnhancer
 
 class GroupBy(torch.nn.Module):
@@ -12,7 +11,7 @@ class GroupBy(torch.nn.Module):
         super().__init__()
         self.n_unary = number_of_unary_predicates
 
-    def __call__(self, unary: torch.Tensor, deltas: torch.Tensor, index1, index2) -> (torch.Tensor, torch.Tensor):
+    def forward(self, unary: torch.Tensor, deltas: torch.Tensor, index1, index2) -> (torch.Tensor, torch.Tensor):
         """Split the deltas matrix in unary and binary deltas.
         :param unary: [n, u] the tensor with unary predicates pre-activations. This is only used to get the shape from
         :param deltas: [n, 2u+b] the tensor containing the delta values
@@ -33,7 +32,7 @@ class Join(torch.nn.Module):
     """Join layer
     """
 
-    def __call__(self, unary: torch.Tensor, binary: torch.Tensor, index1: torch.Tensor, index2: torch.Tensor):
+    def forward(self, unary: torch.Tensor, binary: torch.Tensor, index1: torch.Tensor, index2: torch.Tensor):
         """Join the unary and binary tensors.
         :param unary: the tensor with unary predicates pre-activations
         :param binary: the tensor with binary predicates pre-activations
@@ -53,7 +52,7 @@ class Join(torch.nn.Module):
 
         return torch.cat([torch.gather(unary, 0, index1), torch.gather(unary, 0, index2), binary], dim=1)
 
-class RelationalKENN(torch.nn.Module):
+class RelationalKenn(torch.nn.Module):
 
     def __init__(self, unary_predicates: [str],
                  binary_predicates: [str],
@@ -90,16 +89,16 @@ class RelationalKENN(torch.nn.Module):
 
         if len(self.unary_clauses) != 0:
             self.unary_ke = KnowledgeEnhancer(
-                self.unary_predicates, self.unary_clauses, initial_clause_weight=self.initial_clause_weight)
+                unary_predicates, self.unary_clauses, initial_clause_weight=initial_clause_weight)
         if len(self.binary_clauses) != 0:
             self.binary_ke = KnowledgeEnhancer(
-                self.binary_predicates, self.binary_clauses, initial_clause_weight=self.initial_clause_weight)
+                binary_predicates, self.binary_clauses, initial_clause_weight=initial_clause_weight)
 
             self.join = Join()
             self.group_by = GroupBy(len(unary_predicates))
 
 
-    def __call__(self, unary: torch.Tensor, binary: torch.Tensor, index1: torch.Tensor, index2: torch.Tensor) \
+    def forward(self, unary: torch.Tensor, binary: torch.Tensor, index1: torch.Tensor, index2: torch.Tensor) \
             -> (torch.Tensor, torch.Tensor):
         """Forward step of Kenn model for relational data.
         :param unary: the tensor with unary predicates pre-activations
@@ -115,8 +114,6 @@ class RelationalKENN(torch.nn.Module):
             u = unary + deltas_sum
         else:
             u = unary
-            # This code is not used anywhere. Why?
-            # deltas_u_list = tf.expand_dims(tf.zeros(unary.shape), axis=0)
 
         if len(self.binary_clauses) != 0 and len(binary) != 0:
             joined_matrix = self.join(u, binary, index1, index2)
@@ -131,7 +128,7 @@ class RelationalKENN(torch.nn.Module):
 
     # This doens't seem to have a PyTorch correspondence
     # def get_config(self):
-    #     config = super(RelationalKENN, self).get_config()
+    #     config = super(RelationalKenn, self).get_config()
     #     config.update({'unary_predicates': self.unary_predicates})
     #     config.update({'unary_clauses': self.unary_clauses})
     #     config.update({'binary_predicates': self.binary_predicates})

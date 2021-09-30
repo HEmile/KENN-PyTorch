@@ -24,7 +24,7 @@ class Kenn(torch.nn.Module):
         self.knowledge_enhancer = KnowledgeEnhancer(
             predicates, clauses, initial_clause_weight, save_training_data)
 
-    def __call__(self, inputs: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
+    def forward(self, inputs: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: final preactivations"""

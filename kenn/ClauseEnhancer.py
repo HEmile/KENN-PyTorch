@@ -62,7 +62,7 @@ class ClauseEnhancer(torch.nn.Module):
             self.scatter_literal_indices.append([literal_index])
             signs.append(sign)
 
-        self.gather_literal_indices = torch.tensor(self.gather_literal_indices)
+        self.gather_literal_indices = torch.tensor(gather_literal_indices)
 
         self.signs = np.array(signs, dtype=np.float32)
         # Why is this not initialized?
@@ -89,7 +89,7 @@ class ClauseEnhancer(torch.nn.Module):
 
         return clause_matrix
 
-    def __call__(self, ground_atoms: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def forward(self, ground_atoms: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         """Improve the satisfaction level of the clause.
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: delta vector to be summed to the original pre-activation tensor to obtain an higher satisfaction of \

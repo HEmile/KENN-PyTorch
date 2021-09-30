@@ -1,4 +1,4 @@
-from kenn import Kenn, KnowledgeEnhancer, RelationalKENN
+from kenn import Kenn, KnowledgeEnhancer, RelationalKenn
 
 
 def unary_parser(knowledge_file: str, activation=lambda x: x, initial_clause_weight=0.5, save_training_data=False):
@@ -35,7 +35,7 @@ def unary_parser_ke(knowledge_file: str, initial_clause_weight=0.5):
 
 def relational_parser(knowledge_file: str, activation=lambda x: x, initial_clause_weight=0.5):
     """
-    Takes in input the knowledge file containing both unary and binary clauses and returns a RelationalKENN
+    Takes in input the knowledge file containing both unary and binary clauses and returns a RelationalKenn
     Layer, with input the predicates and clauses found in the knowledge file.
     :param knowledge_file: path of the prior knowledge file;
     """
@@ -66,7 +66,7 @@ def relational_parser(knowledge_file: str, activation=lambda x: x, initial_claus
         else:
             binary_clauses.append(clause)
 
-    return RelationalKENN(
+    return RelationalKenn(
         u_groundings,
         b_groundings,
         unary_clauses,
