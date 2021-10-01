@@ -13,20 +13,31 @@ class GroupBy(torch.nn.Module):
 
     def forward(self, unary: torch.Tensor, deltas: torch.Tensor, index1, index2) -> (torch.Tensor, torch.Tensor):
         """Split the deltas matrix in unary and binary deltas.
-        :param unary: [n, u] the tensor with unary predicates pre-activations. This is only used to get the shape from
-        :param deltas: [n, 2u+b] the tensor containing the delta values
-        :param index1: [n, b] a vector containing the indices of the first object
+        :param unary: [b, |U|] the tensor with unary predicates pre-activations. This is only used to get the shape from
+        :param deltas: [b, 2|U|+|B|] the tensor containing the delta values
+        :param index1: [b, |B|] a vector containing the indices of the first object
         of the pair referred by binary and deltas tensors
-        :param index2: [n, b] a vector containing the indices of the second object
+        :param index2: [b, |B|] a vector containing the indices of the second object
         of the pair referred by binary and deltas tensors
         :returns Two tensors. The second returns the binary deltas
         """
-        ux = deltas[:, :self.n_unary]
-        uy = deltas[:, self.n_unary:2 * self.n_unary]
-        b = deltas[:, 2 * self.n_unary:]
-        shape = unary.size()
+        ux = deltas[..., :self.n_unary]
+        uy = deltas[..., self.n_unary:2 * self.n_unary]
+        b = deltas[..., 2 * self.n_unary:]
 
-        return torch.scatter(ux, 0, index1, torch.zeros(shape)) + torch.scatter(uy, 0, index2, torch.zeros(shape)), b
+        index1 = torch.squeeze(index1)
+        index2 = torch.squeeze(index2)
+
+        # For the case where index1 and index2 are scalars, tf.squeeze will make them 0 dimensional
+        if index1.ndim == 0 and index2.ndim == 0:
+            index1 = torch.unsqueeze(index1, 0)
+            index2 = torch.unsqueeze(index2, 0)
+
+        deltas_ux = torch.zeros_like(unary)
+        deltas_uy = torch.zeros_like(unary)
+        deltas_ux[index1] = ux
+        deltas_uy[index2] = uy
+        return deltas_ux + deltas_uy, b
 
 class Join(torch.nn.Module):
     """Join layer
@@ -34,12 +45,13 @@ class Join(torch.nn.Module):
 
     def forward(self, unary: torch.Tensor, binary: torch.Tensor, index1: torch.Tensor, index2: torch.Tensor):
         """Join the unary and binary tensors.
-        :param unary: the tensor with unary predicates pre-activations
-        :param binary: the tensor with binary predicates pre-activations
-        :param index1: a vector containing the indices of the first object
+        :param unary: [u, |U|] the tensor with unary predicates pre-activations
+        :param binary: [b, |B|] the tensor with binary predicates pre-activations
+        :param index1: [b] a vector containing the indices of the first object
         of the pair referred by binary tensor
-        :param index1: a vector containing the indices of the second object
+        :param index1: [b] a vector containing the indices of the second object
         of the pair referred by binary tensor
+        :returns [b, 2|U| + |B|]
         """
 
         index1 = torch.squeeze(index1)
@@ -50,7 +62,9 @@ class Join(torch.nn.Module):
             index1 = torch.unsqueeze(index1, 0)
             index2 = torch.unsqueeze(index2, 0)
 
-        return torch.cat([torch.gather(unary, 0, index1), torch.gather(unary, 0, index2), binary], dim=1)
+        u1 = unary[index1]#torch.gather(unary, 0, torch.unsqueeze(index1, -1))
+        u2 = unary[index2]
+        return torch.cat([u1, u2, binary], dim=1)
 
 class RelationalKenn(torch.nn.Module):
 

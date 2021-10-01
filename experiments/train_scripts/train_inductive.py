@@ -22,25 +22,25 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
 
     # LOADING DATASET
     features = np.load(s.DATASET_FOLDER + 'features.npy')
-    labels = np.load(s.DATASET_FOLDER + 'labels.npy')
+    labels = torch.tensor(np.load(s.DATASET_FOLDER + 'labels.npy'))
 
     # Import s_x and s_y for the INDUCTIVE learning paradigm
-    index_x_train = np.load(
-        s.DATASET_FOLDER + 'index_x_inductive_training.npy')
-    index_y_train = np.load(
-        s.DATASET_FOLDER + 'index_y_inductive_training.npy')
-    relations_inductive_training = np.load(
-        s.DATASET_FOLDER + 'relations_inductive_training.npy')
-    index_x_valid = np.load(
-        s.DATASET_FOLDER + 'index_x_inductive_validation.npy')
-    index_y_valid = np.load(
-        s.DATASET_FOLDER + 'index_y_inductive_validation.npy')
-    relations_inductive_valid = np.load(
-        s.DATASET_FOLDER + 'relations_inductive_validation.npy')
-    index_x_test = np.load(s.DATASET_FOLDER + 'index_x_inductive_test.npy')
-    index_y_test = np.load(s.DATASET_FOLDER + 'index_y_inductive_test.npy')
-    relations_inductive_test = np.load(
-        s.DATASET_FOLDER + 'relations_inductive_test.npy')
+    index_x_train = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'index_x_inductive_training.npy'), dtype=torch.int64)
+    index_y_train = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'index_y_inductive_training.npy'), dtype=torch.int64)
+    relations_inductive_training = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'relations_inductive_training.npy'), dtype=torch.int64)
+    index_x_valid = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'index_x_inductive_validation.npy'), dtype=torch.int64)
+    index_y_valid = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'index_y_inductive_validation.npy'), dtype=torch.int64)
+    relations_inductive_valid = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'relations_inductive_validation.npy'), dtype=torch.int64)
+    index_x_test = torch.tensor(np.load(s.DATASET_FOLDER + 'index_x_inductive_test.npy'), dtype=torch.int64)
+    index_y_test = torch.tensor(np.load(s.DATASET_FOLDER + 'index_y_inductive_test.npy'), dtype=torch.int64)
+    relations_inductive_test = torch.tensor(np.load(
+        s.DATASET_FOLDER + 'relations_inductive_test.npy'), dtype=torch.int64)
 
     train_len, samples_in_valid = get_train_and_valid_lengths(
         features, percentage_of_training)
@@ -52,8 +52,8 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
 
     # list of all the evolutions of the clause weights
     clause_weights_1 = []
-    clause_weights_2 = []
-    clause_weights_3 = []
+    # clause_weights_2 = []
+    # clause_weights_3 = []
 
     train_indices = range(train_len)
     valid_indices = range(train_len, train_len + samples_in_valid)
@@ -65,30 +65,30 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
             model=kenn_model,
             features=torch.tensor(features[train_indices, :]),
             relations=relations_inductive_training,
-            index_x_train=torch.tensor(index_x_train),
-            index_y_train=torch.tensor(index_y_train),
+            index_x_train=index_x_train,
+            index_y_train=index_y_train,
             labels=labels[train_indices, :],
             optimizer=optimizer
         )
 
         t_predictions = kenn_model(
-            [features[train_indices, :], relations_inductive_training, index_x_train, index_y_train])
+            [torch.tensor(features[train_indices, :]), relations_inductive_training, index_x_train, index_y_train])
         t_loss = loss(t_predictions, labels[train_indices, :])
 
         # Append current clause weights
         c_enhancers_weights_1 = [float(torch.squeeze(
             ce.clause_weight)) for ce in kenn_model.kenn_layer_1.binary_ke.clause_enhancers]
         clause_weights_1.append(c_enhancers_weights_1)
-        c_enhancers_weights_2 = [float(torch.squeeze(
-            ce.clause_weight)) for ce in kenn_model.kenn_layer_2.binary_ke.clause_enhancers]
-        clause_weights_2.append(c_enhancers_weights_2)
-        c_enhancers_weights_3 = [float(torch.squeeze(
-            ce.clause_weight)) for ce in kenn_model.kenn_layer_3.binary_ke.clause_enhancers]
-        clause_weights_3.append(c_enhancers_weights_3)
+        # c_enhancers_weights_2 = [float(torch.squeeze(
+        #     ce.clause_weight)) for ce in kenn_model.kenn_layer_2.binary_ke.clause_enhancers]
+        # clause_weights_2.append(c_enhancers_weights_2)
+        # c_enhancers_weights_3 = [float(torch.squeeze(
+        #     ce.clause_weight)) for ce in kenn_model.kenn_layer_3.binary_ke.clause_enhancers]
+        # clause_weights_3.append(c_enhancers_weights_3)
 
         v_predictions, v_loss = validation_step_kenn_inductive(
             model=kenn_model,
-            features=features[valid_indices, :],
+            features=torch.tensor(features[valid_indices, :]),
             relations=relations_inductive_valid,
             index_x_valid=index_x_valid,
             index_y_valid=index_y_valid,
@@ -118,12 +118,12 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
             break
 
     predictions_test = kenn_model(
-        [features[test_indices, :], relations_inductive_test, index_x_test, index_y_test], save_debug_data=True)
+        [torch.tensor(features[test_indices, :]), relations_inductive_test, index_x_test, index_y_test], save_debug_data=True)
 
-    test_accuracy = accuracy(predictions_test, labels[test_indices, :])
+    test_accuracy = accuracy(predictions_test, torch.tensor(labels[test_indices, :]))
 
     all_clause_weights = np.array(
-        [clause_weights_1, clause_weights_2, clause_weights_3])
+        [clause_weights_1])
     print("Test Accuracy: {}".format(test_accuracy))
     return {
         "train_losses": train_losses,

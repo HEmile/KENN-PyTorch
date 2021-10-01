@@ -36,7 +36,7 @@ def callback_early_stopping(AccList: ArrayLike, min_delta=s.ES_MIN_DELTA, patien
 
 def loss(predictions: Tensor, labels: Tensor) -> Tensor:
     l = torch.nn.NLLLoss()
-    return l(predictions, labels)
+    return l(predictions, torch.argmax(labels, dim=-1))
 
 def train_step_standard(model: Standard, features: Tensor, labels: Tensor, optimizer: Optimizer):
     """
@@ -65,14 +65,14 @@ def validation_step_standard(model: Standard, features: Tensor, labels: Tensor) 
     - labels: the ground truth labels corresponding to the samples given in the features parameter;
     - loss: tf.loss object associated with the model.
     """
-    with torch.no_grad:
+    with torch.no_grad():
         _, predictions = model(features)
         valid_loss = loss(predictions, labels)
         return predictions, valid_loss
 
 
-def train_step_kenn_inductive(model: Kenn, features: Tensor, relations: ArrayLike,
-                              index_x_train: ArrayLike, index_y_train: ArrayLike, labels: Tensor, optimizer: Optimizer):
+def train_step_kenn_inductive(model: Kenn, features: Tensor, relations: Tensor,
+                              index_x_train: Tensor, index_y_train: Tensor, labels: Tensor, optimizer: Optimizer):
     """
     Train step for the KENN model, for the Inductive Paradigm
     (i.e. we are using only relations completely inside the training set).
@@ -113,11 +113,12 @@ def train_step_kenn_transductive(model, features, relations, index_x_train, inde
     - optimizer: tf.optimizer object associated with the model.
     """
     optimizer.zero_grad()
-    predictions_KENN = model(
-        [features, relations, index_x_train, index_y_train])
+    predictions_KENN = model([features, torch.tensor(relations, dtype=torch.int64),
+                              torch.tensor(index_x_train, dtype=torch.int64),
+                              torch.tensor(index_y_train, dtype=torch.int64)])
 
     l = loss(predictions_KENN[:len(labels), :], labels)
-    l.backwards()
+    l.backward()
     optimizer.step()
 
 
@@ -135,7 +136,7 @@ def validation_step_kenn_inductive(model, features, relations, index_x_valid, in
     - labels: the ground truth labels corresponding to the samples given in the features parameter;
     - loss: tf.loss object associated with the model.
     """
-    with torch.no_grad:
+    with torch.no_grad():
         predictions = model([features, relations, index_x_valid, index_y_valid])
 
         valid_loss = loss(predictions, labels)

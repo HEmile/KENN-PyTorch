@@ -3,7 +3,7 @@ import numpy as np
 from torch.nn.functional import softmax
 from typing import Union
 
-
+# TODO: No parallelization over clauses
 class ClauseEnhancer(torch.nn.Module):
 
     def __init__(self,
@@ -64,27 +64,25 @@ class ClauseEnhancer(torch.nn.Module):
 
         self.gather_literal_indices = torch.tensor(gather_literal_indices)
 
-        self.signs = np.array(signs, dtype=np.float32)
-        # Why is this not initialized?
-        self.clause_weight = None
+        self.signs = torch.tensor(signs, dtype=torch.float32)
 
         self.register_parameter(
-            name='kernel',
+            name='clause_weight',
             param=torch.nn.Parameter(torch.tensor(self.initial_weight)))
 
-        self.kernel.requires_grad = not self.fixed_weight
+        self.clause_weight.requires_grad = not self.fixed_weight
         self.min_weight = min_weight
         self.max_weight = max_weight
 
     def grounded_clause(self, ground_atoms: torch.Tensor) -> torch.Tensor:
         """Find the grounding of the clause
-        :param ground_atoms: the tensor containing the pre activations of the ground atoms
+        :param ground_atoms: [b, 2|U| + |B|] the tensor containing the pre activations of the ground atoms
         :return: the grounded clause (a tensor with literals truth values)
         """
 
         # Choose the right literals
-        selected_predicates = torch.gather(
-            ground_atoms, 1, self.gather_literal_indices)
+        # self.gather_literal_indices: [l], each in {1, ..., 2|U| + |B|}
+        selected_predicates = ground_atoms[..., self.gather_literal_indices] # [b, l]
         clause_matrix = selected_predicates * self.signs
 
         return clause_matrix
@@ -94,15 +92,17 @@ class ClauseEnhancer(torch.nn.Module):
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: delta vector to be summed to the original pre-activation tensor to obtain an higher satisfaction of \
         the clause"""
-        super().__call__()
-
+        # [b, l]
         clause_matrix = self.grounded_clause(ground_atoms)
 
         # Approximated Godel t-conorm boost function on preactivations
-        delta = self.signs * softmax(clause_matrix) * self.clause_weight
+        # VERY BIG WARNING TODO WHY DOES IT MULTIPLY WITH self.signs AGAIN?? IT ALSO DOES IN GROUNDED_CLAUSE!!
 
-        # Scatter these to a zero matrix of the same size as ground atoms.
-        scattered_delta = torch.scatter(delta, 0, self.gather_literal_indices, torch.zeros_like(self.ground_atoms))
+        delta = self.signs * softmax(clause_matrix, dim=-1) * self.clause_weight
+
+        # [b, 2|U|+|B|]
+        scattered_delta = torch.zeros_like(ground_atoms)
+        scattered_delta[..., self.gather_literal_indices] = delta
 
         return scattered_delta, delta
 

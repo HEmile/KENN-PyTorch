@@ -36,6 +36,7 @@ class KnowledgeEnhancer(torch.nn.Module):
         scatter_deltas_list: [torch.Tensor] = []
         light_deltas_list = []
         weights = []
+        # TODO: parllelize over clauses
         for enhancer in self.clause_enhancers:
             scattered_delta, delta = enhancer(ground_atoms)
             scatter_deltas_list.append(scattered_delta)
