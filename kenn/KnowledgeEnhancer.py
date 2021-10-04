@@ -22,9 +22,12 @@ class KnowledgeEnhancer(torch.nn.Module):
         self.clause_enhancers = []
         self.save_training_data = save_training_data
 
-        for clause in clauses:
-            self.clause_enhancers.append(ClauseEnhancer(
-                predicates, clause[:-1], initial_clause_weight))
+
+        for index, clause in enumerate(clauses):
+            enhancer = ClauseEnhancer(
+                predicates, clause[:-1], initial_clause_weight)
+            self.clause_enhancers.append(enhancer)
+            self.add_module(f'clause-{index}', enhancer)
 
     def forward(self, ground_atoms: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.

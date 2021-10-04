@@ -43,6 +43,8 @@ class Kenn(Standard):
         self.knowledge = knowledge_file
         # There used to be 3 layers here. We keep to 1 for now. (This is apparently called 'greedy'
         self.kenn_layer_1 = relational_parser(self.knowledge)
+        self.kenn_layer_2 = relational_parser(self.knowledge)
+        self.kenn_layer_3 = relational_parser(self.knowledge)
 
     def forward(self, inputs: [Tensor, ArrayLike, Tensor, Tensor], save_debug_data=False):
         # TODO: What to do with the save_debug_data argument?
@@ -53,4 +55,6 @@ class Kenn(Standard):
 
         z = self.preactivations(features)
         z, _ = self.kenn_layer_1(z, relations, sx, sy)
+        z, _ = self.kenn_layer_2(z, relations, sx, sy)
+        z, _ = self.kenn_layer_3(z, relations, sx, sy)
         return softmax(z, dim=-1)

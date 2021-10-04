@@ -95,9 +95,9 @@ class ClauseEnhancer(torch.nn.Module):
         # [b, l]
         clause_matrix = self.grounded_clause(ground_atoms)
 
-        # Approximated Godel t-conorm boost function on preactivations
-        # VERY BIG WARNING TODO WHY DOES IT MULTIPLY WITH self.signs AGAIN?? IT ALSO DOES IN GROUNDED_CLAUSE!!
+        self.clause_weight.data = torch.clip(self.clause_weight, 0, 500)
 
+        # Approximated Godel t-conorm boost function on preactivations
         delta = self.signs * softmax(clause_matrix, dim=-1) * self.clause_weight
 
         # [b, 2|U|+|B|]

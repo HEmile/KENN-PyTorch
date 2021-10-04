@@ -7,6 +7,7 @@ from experiments.util import *
 from experiments.train_scripts.train_baseline import train_and_evaluate_standard
 
 from experiments.preprocessing import generate_dataset, get_train_and_valid_lengths
+import random
 from numpy.typing import ArrayLike
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -137,8 +138,9 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
 
 if __name__ == "__main__":
     random_seed = 0
-    torch.random.manual_seed(random_seed)
+    torch.manual_seed(random_seed)
     np.random.seed(random_seed)
+    random.seed(random_seed)
 
     generate_dataset(0.75)
     history_kenn = train_and_evaluate_kenn_inductive(0.75)
