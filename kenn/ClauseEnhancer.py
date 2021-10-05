@@ -1,9 +1,9 @@
 import torch
-import numpy as np
-from torch.nn.functional import softmax
-from typing import Union
 
 # TODO: No parallelization over clauses
+from kenn.boost_functions import GodelBoostConormApprox, GodelBoostConorm
+
+
 class ClauseEnhancer(torch.nn.Module):
 
     def __init__(self,
@@ -11,7 +11,8 @@ class ClauseEnhancer(torch.nn.Module):
                  clause_string: str,
                  initial_clause_weight: float,
                  min_weight=0,
-                 max_weight=500):
+                 max_weight=500,
+                 boost_function='godel'):
         """Initialize the clause.
         :param available_predicates: the list of all possible literals in a clause
         :param clause_string: a string representing a conjunction of literals. The format should be:
@@ -34,11 +35,16 @@ class ClauseEnhancer(torch.nn.Module):
             ',', 'v').replace('(', '').replace(')', '')
 
         if weight_string == '_':
-            self.initial_weight = initial_clause_weight
-            self.fixed_weight = False
+            initial_weight = initial_clause_weight
+            fixed_weight = False
         else:
-            self.initial_weight = float(weight_string)
-            self.fixed_weight = True
+            initial_weight = float(weight_string)
+            fixed_weight = True
+
+        if boost_function == 'godel_logits':
+            self.conorm_boost = GodelBoostConormApprox(initial_weight, fixed_weight, min_weight, max_weight)
+        else:
+            self.conorm_boost = GodelBoostConorm(initial_weight, fixed_weight, min_weight, max_weight)
 
         literals = self.clause_string.split(',')
         self.number_of_literals = len(literals)
@@ -66,26 +72,16 @@ class ClauseEnhancer(torch.nn.Module):
 
         self.signs = torch.tensor(signs, dtype=torch.float32)
 
-        self.register_parameter(
-            name='clause_weight',
-            param=torch.nn.Parameter(torch.tensor(self.initial_weight)))
 
-        self.clause_weight.requires_grad = not self.fixed_weight
-        self.min_weight = min_weight
-        self.max_weight = max_weight
-
-    def grounded_clause(self, ground_atoms: torch.Tensor) -> torch.Tensor:
+    def select_predicates(self, ground_atoms: torch.Tensor) -> torch.Tensor:
         """Find the grounding of the clause
         :param ground_atoms: [b, 2|U| + |B|] the tensor containing the pre activations of the ground atoms
-        :return: the grounded clause (a tensor with literals truth values)
+        :return: the grounded clause: [b, l] (a tensor with literals pre-activations)
         """
 
         # Choose the right literals
         # self.gather_literal_indices: [l], each in {1, ..., 2|U| + |B|}
-        selected_predicates = ground_atoms[..., self.gather_literal_indices] # [b, l]
-        clause_matrix = selected_predicates * self.signs
-
-        return clause_matrix
+        return ground_atoms[..., self.gather_literal_indices] # [b, l]
 
     def forward(self, ground_atoms: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         """Improve the satisfaction level of the clause.
@@ -93,12 +89,9 @@ class ClauseEnhancer(torch.nn.Module):
         :return: delta vector to be summed to the original pre-activation tensor to obtain an higher satisfaction of \
         the clause"""
         # [b, l]
-        clause_matrix = self.grounded_clause(ground_atoms)
+        selected_predicates = self.select_predicates(ground_atoms)
 
-        self.clause_weight.data = torch.clip(self.clause_weight, 0, 500)
-
-        # Approximated Godel t-conorm boost function on preactivations
-        delta = self.signs * softmax(clause_matrix, dim=-1) * self.clause_weight
+        delta = self.conorm_boost(selected_predicates, self.signs)
 
         # [b, 2|U|+|B|]
         scattered_delta = torch.zeros_like(ground_atoms)

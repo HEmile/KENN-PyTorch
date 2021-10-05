@@ -78,7 +78,7 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
 
         # Append current clause weights
         c_enhancers_weights_1 = [float(torch.squeeze(
-            ce.clause_weight)) for ce in kenn_model.kenn_layer_1.binary_ke.clause_enhancers]
+            ce.conorm_boost.clause_weight)) for ce in kenn_model.kenn_layer_1.binary_ke.clause_enhancers]
         clause_weights_1.append(c_enhancers_weights_1)
         # c_enhancers_weights_2 = [float(torch.squeeze(
         #     ce.clause_weight)) for ce in kenn_model.kenn_layer_2.binary_ke.clause_enhancers]
