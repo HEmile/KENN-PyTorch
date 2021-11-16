@@ -5,6 +5,8 @@ from kenn import relational_parser
 from torch.nn.functional import softmax
 from torch.nn import Linear, Dropout
 
+from kenn.boost_functions import GodelBoostConormApprox, LukasiewiczBoostConorm
+
 
 class Standard(torch.nn.Module):
     def __init__(self, in_features: int):
@@ -38,13 +40,13 @@ class Kenn(Standard):
     Relational KENN Model with 3 KENN layers.
     """
 
-    def __init__(self, knowledge_file: str, input_features: int):
+    def __init__(self, knowledge_file: str, input_features: int, boost_function=LukasiewiczBoostConorm):
         super().__init__(input_features)
         self.knowledge = knowledge_file
         # There used to be 3 layers here. We keep to 1 for now. (This is apparently called 'greedy'
-        self.kenn_layer_1 = relational_parser(self.knowledge)
-        self.kenn_layer_2 = relational_parser(self.knowledge)
-        self.kenn_layer_3 = relational_parser(self.knowledge)
+        self.kenn_layer_1 = relational_parser(self.knowledge, boost_function=boost_function)
+        self.kenn_layer_2 = relational_parser(self.knowledge, boost_function=boost_function)
+        self.kenn_layer_3 = relational_parser(self.knowledge, boost_function=boost_function)
 
     def forward(self, inputs: [Tensor, ArrayLike, Tensor, Tensor], save_debug_data=False):
         # TODO: What to do with the save_debug_data argument?

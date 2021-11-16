@@ -50,3 +50,15 @@ class GodelBoostConorm(BoostFunction):
         # Approximated Godel t-conorm boost function on preactivations
         return delta
 
+class LukasiewiczBoostConorm(BoostFunction):
+
+    def __init__(self, initial_weight: float, fixed_weight: bool, min_weight, max_weight):
+        super().__init__(initial_weight, fixed_weight, 0.0, 1.0)
+
+    def forward(self, selected_predicates: torch.Tensor, signs: torch.Tensor):
+        self.clause_weight.data = torch.clip(self.clause_weight, self.min_weight, self.max_weight)
+
+        clause_matrix = selected_predicates * signs + (signs < 0)
+        sums = torch.sum(clause_matrix, 1)
+        return torch.ones(clause_matrix.shape) * \
+               ((sums < 1) * self.clause_weight / clause_matrix.shape[1] * (1 - sums))[:, None] * signs
