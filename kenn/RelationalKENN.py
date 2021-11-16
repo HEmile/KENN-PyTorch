@@ -1,6 +1,8 @@
 import torch
 from kenn import KnowledgeEnhancer
 
+from kenn.boost_functions import GodelBoostConormApprox
+
 class GroupBy(torch.nn.Module):
     """GroupBy layer
     """
@@ -73,7 +75,8 @@ class RelationalKenn(torch.nn.Module):
                  unary_clauses: [str],
                  binary_clauses: [str],
                  activation=lambda x: x,
-                 initial_clause_weight=0.5):
+                 initial_clause_weight=0.5,
+                 boost_function=GodelBoostConormApprox):
         """Initialize the knowledge base.
         :param unary_predicates: the list of unary predicates names
         :param binary_predicates: the list of binary predicates names
@@ -103,10 +106,10 @@ class RelationalKenn(torch.nn.Module):
 
         if len(self.unary_clauses) != 0:
             self.unary_ke = KnowledgeEnhancer(
-                unary_predicates, self.unary_clauses, initial_clause_weight=initial_clause_weight)
+                unary_predicates, self.unary_clauses, initial_clause_weight=initial_clause_weight, boost_function=boost_function)
         if len(self.binary_clauses) != 0:
             self.binary_ke = KnowledgeEnhancer(
-                binary_predicates, self.binary_clauses, initial_clause_weight=initial_clause_weight)
+                binary_predicates, self.binary_clauses, initial_clause_weight=initial_clause_weight, boost_function=boost_function)
 
             self.join = Join()
             self.group_by = GroupBy(len(unary_predicates))

@@ -1,7 +1,8 @@
 import torch
 
 # TODO: No parallelization over clauses
-from kenn.boost_functions import GodelBoostConormApprox, GodelBoostConorm
+# TODO: fix the memory issue (already fixed in the tensorflow version)
+from kenn.boost_functions import GodelBoostConormApprox
 
 
 class ClauseEnhancer(torch.nn.Module):
@@ -12,7 +13,7 @@ class ClauseEnhancer(torch.nn.Module):
                  initial_clause_weight: float,
                  min_weight=0,
                  max_weight=500,
-                 boost_function='godel'):
+                 boost_function=GodelBoostConormApprox):
         """Initialize the clause.
         :param available_predicates: the list of all possible literals in a clause
         :param clause_string: a string representing a conjunction of literals. The format should be:
@@ -41,10 +42,7 @@ class ClauseEnhancer(torch.nn.Module):
             initial_weight = float(weight_string)
             fixed_weight = True
 
-        if boost_function == 'godel_logits':
-            self.conorm_boost = GodelBoostConormApprox(initial_weight, fixed_weight, min_weight, max_weight)
-        else:
-            self.conorm_boost = GodelBoostConorm(initial_weight, fixed_weight, min_weight, max_weight)
+        self.conorm_boost = boost_function(initial_weight, fixed_weight, min_weight, max_weight)
 
         literals = self.clause_string.split(',')
         self.number_of_literals = len(literals)

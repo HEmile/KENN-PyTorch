@@ -1,10 +1,11 @@
 import torch
 from kenn.ClauseEnhancer import ClauseEnhancer
 
+from kenn.boost_functions import GodelBoostConormApprox
 
 class KnowledgeEnhancer(torch.nn.Module):
 
-    def __init__(self, predicates: [str], clauses: [str], initial_clause_weight=0.5, save_training_data=False):
+    def __init__(self, predicates: [str], clauses: [str], initial_clause_weight=0.5, save_training_data=False, boost_function=GodelBoostConormApprox):
         """Initialize the knowledge base.
         :param predicates: a list of predicates names
         :param clauses: a list of constraints. Each constraint is a string on the form:
@@ -25,7 +26,7 @@ class KnowledgeEnhancer(torch.nn.Module):
 
         for index, clause in enumerate(clauses):
             enhancer = ClauseEnhancer(
-                predicates, clause[:-1], initial_clause_weight)
+                predicates, clause[:-1], initial_clause_weight, boost_function=boost_function)
             self.clause_enhancers.append(enhancer)
             self.add_module(f'clause-{index}', enhancer)
 
