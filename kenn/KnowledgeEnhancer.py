@@ -30,7 +30,7 @@ class KnowledgeEnhancer(torch.nn.Module):
             self.clause_enhancers.append(enhancer)
             self.add_module(f'clause-{index}', enhancer)
 
-    def forward(self, ground_atoms: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
+    def forward(self, ground_atoms: torch.Tensor, using_max=False) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: final delta values"""
@@ -50,4 +50,10 @@ class KnowledgeEnhancer(torch.nn.Module):
 
         deltas_data = [light_deltas_list, weights]
         # The sum can be refactored into the for loop above.
-        return torch.stack(scatter_deltas_list).sum(dim=0), deltas_data
+        if using_max:
+            # TODO: the max is not performed at the level of groupby (sum is still used there)
+            stacked_deltas = torch.stack(scatter_deltas_list)
+            _, indexes = torch.abs(stacked_deltas).max(dim=0)
+            return torch.gather(stacked_deltas, 0, indexes.unsqueeze(0)), deltas_data
+        else:
+            return torch.stack(scatter_deltas_list).sum(dim=0), deltas_data
