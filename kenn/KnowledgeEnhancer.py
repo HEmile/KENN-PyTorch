@@ -1,10 +1,11 @@
 import torch
 from kenn.ClauseEnhancer import ClauseEnhancer
 
+from kenn.boost_functions import GodelBoostConormApprox
 
 class KnowledgeEnhancer(torch.nn.Module):
 
-    def __init__(self, predicates: [str], clauses: [str], initial_clause_weight=0.5, save_training_data=False):
+    def __init__(self, predicates: [str], clauses: [str], initial_clause_weight=0.5, save_training_data=False, boost_function=GodelBoostConormApprox):
         """Initialize the knowledge base.
         :param predicates: a list of predicates names
         :param clauses: a list of constraints. Each constraint is a string on the form:
@@ -25,11 +26,11 @@ class KnowledgeEnhancer(torch.nn.Module):
 
         for index, clause in enumerate(clauses):
             enhancer = ClauseEnhancer(
-                predicates, clause[:-1], initial_clause_weight)
+                predicates, clause[:-1], initial_clause_weight, boost_function=boost_function)
             self.clause_enhancers.append(enhancer)
             self.add_module(f'clause-{index}', enhancer)
 
-    def forward(self, ground_atoms: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
+    def forward(self, ground_atoms: torch.Tensor, using_max=False) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: final delta values"""
@@ -49,4 +50,10 @@ class KnowledgeEnhancer(torch.nn.Module):
 
         deltas_data = [light_deltas_list, weights]
         # The sum can be refactored into the for loop above.
-        return torch.stack(scatter_deltas_list).sum(dim=0), deltas_data
+        if using_max:
+            # TODO: the max is not performed at the level of groupby (sum is still used there)
+            stacked_deltas = torch.stack(scatter_deltas_list)
+            _, indexes = torch.abs(stacked_deltas).max(dim=0)
+            return torch.gather(stacked_deltas, 0, indexes.unsqueeze(0)), deltas_data
+        else:
+            return torch.stack(scatter_deltas_list).sum(dim=0), deltas_data

@@ -50,3 +50,36 @@ class GodelBoostConorm(BoostFunction):
         # Approximated Godel t-conorm boost function on preactivations
         return delta
 
+
+class LukasiewiczBoostConorm(BoostFunction):
+
+    def __init__(self, initial_weight: float, fixed_weight: bool, min_weight, max_weight):
+        super().__init__(initial_weight, fixed_weight, 0.0, 1.0)
+
+    def forward(self, selected_predicates: torch.Tensor, signs: torch.Tensor):
+        self.clause_weight.data = torch.clip(self.clause_weight, self.min_weight, self.max_weight)
+
+        clause_matrix = (signs < 0) + signs * selected_predicates
+        sums = torch.sum(clause_matrix, 1)
+        return torch.ones(clause_matrix.shape) * ((sums < 1) *
+                                                  (1 - sums) *
+                self.clause_weight / clause_matrix.shape[1] )[:, None] * signs
+
+
+class ProductBoostConorm(BoostFunction):
+
+    def forward(self, selected_predicates: torch.Tensor, signs: torch.Tensor):
+
+        self.clause_weight.data = torch.clip(self.clause_weight, self.min_weight, self.max_weight)
+        clause_matrix = selected_predicates * signs
+
+        m, i = clause_matrix.max(dim=1)  # m: maximum literals' truth values, i: the corresponding vector of indexes
+        t = torch.sigmoid(clause_matrix)  # Activations of the literals' truth values
+        tm = torch.sigmoid(m + self.clause_weight)  # Activations of the highest literals after adding the delta
+        dm = tm - t[np.arange(t.shape[0]), i]  # Deltas on the activations of the highest literal
+        c = dm * (1 - tm)
+
+        deltas = torch.logit((1. + t) / 2. - torch.sqrt(((1. - t + 0.0001) / 2.) ** 2 - c[:, None]), eps=0.0001) - clause_matrix
+        deltas[np.arange(t.shape[0]), i] = self.clause_weight
+
+        return deltas * signs

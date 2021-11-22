@@ -1,13 +1,16 @@
 import torch
 from kenn.KnowledgeEnhancer import KnowledgeEnhancer
 
+from kenn.boost_functions import GodelBoostConormApprox
+
 class Kenn(torch.nn.Module):
 
     def __init__(self, predicates: [str],
                  clauses: [str],
                  activation=lambda x: x,
                  initial_clause_weight=0.5,
-                 save_training_data=False):
+                 save_training_data=False,
+                 boost_function=GodelBoostConormApprox):
         """Initialize the knowledge base.
         :param predicates: a list of predicates names
         :param clauses: a list of constraints. Each constraint is a string on the form:
@@ -22,7 +25,7 @@ class Kenn(torch.nn.Module):
         super().__init__()
         self.activation = activation
         self.knowledge_enhancer = KnowledgeEnhancer(
-            predicates, clauses, initial_clause_weight, save_training_data)
+            predicates, clauses, initial_clause_weight, save_training_data, boost_function=boost_function)
 
     def forward(self, inputs: torch.Tensor) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.
