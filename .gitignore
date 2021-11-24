@@ -148,6 +148,8 @@ Thumbs.db
 
 # profiling data
 .prof
+/experiments/data
+/.idea
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python
