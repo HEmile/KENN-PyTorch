@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.insert(0, os.getcwd())
+
 import numpy as np
 from experiments.preprocessing import generate_dataset
 import experiments.train_scripts.train_baseline as tb
@@ -83,4 +87,4 @@ if __name__ == '__main__':
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    run_tests(n_runs=500, custom_training_dimensions=[0.10, 0.25, 0.50, 0.75, 0.90])
+    run_tests(n_runs=100, custom_training_dimensions=[0.10, 0.25, 0.50, 0.75, 0.90])
