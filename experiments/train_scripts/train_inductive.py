@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from experiments.model import Kenn
+from kenn.boost_functions import GodelBoostConormApprox, LukasiewiczBoostConorm, ProductBoostConorm
 import os
 import experiments.settings as s
 from experiments.util import *
@@ -12,12 +13,14 @@ from numpy.typing import ArrayLike
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
-def train_and_evaluate_kenn_inductive(percentage_of_training, verbose=True):
+def train_and_evaluate_kenn_inductive(percentage_of_training, boost_function=GodelBoostConormApprox, use_preactivations=True, verbose=True):
     """
     Trains KENN model with the Training Set using the Inductive Paradigm.
     Validates on Validation Set, and evaluates accuracy on the Test Set.
     """
-    kenn_model = Kenn('knowledge_base', s.NUMBER_OF_FEATURES)
+    kenn_model = Kenn('knowledge_base', s.NUMBER_OF_FEATURES,
+                      boost_function=boost_function,
+                      use_preactivations=use_preactivations)
 
     optimizer = torch.optim.Adam(kenn_model.parameters())
 

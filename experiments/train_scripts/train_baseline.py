@@ -21,6 +21,9 @@ def train_and_evaluate_standard(percentage_of_training, verbose=True):
     train_len, samples_in_valid = get_train_and_valid_lengths(
         features, percentage_of_training)
 
+    features = torch.tensor(features)
+    labels = torch.tensor(labels)
+
     train_losses = []
     valid_losses = []
     valid_accuracies = []

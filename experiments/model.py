@@ -40,7 +40,7 @@ class Kenn(Standard):
     Relational KENN Model with 3 KENN layers.
     """
 
-    def __init__(self, knowledge_file: str, input_features: int, boost_function=ProductBoostConorm):
+    def __init__(self, knowledge_file: str, input_features: int, boost_function=ProductBoostConorm, use_preactivations=True):
         super().__init__(input_features)
         self.knowledge = knowledge_file
         # There used to be 3 layers here. We keep to 1 for now. (This is apparently called 'greedy'
@@ -48,14 +48,16 @@ class Kenn(Standard):
         self.kenn_layer_2 = relational_parser(self.knowledge, boost_function=boost_function)
         self.kenn_layer_3 = relational_parser(self.knowledge, boost_function=boost_function)
 
-    def forward(self, inputs: [Tensor, ArrayLike, Tensor, Tensor], save_debug_data=False, use_preactivations=True):
+        self.use_preactivations = use_preactivations
+
+    def forward(self, inputs: [Tensor, ArrayLike, Tensor, Tensor], save_debug_data=False):
         # TODO: What to do with the save_debug_data argument?
         features = inputs[0]
         relations = inputs[1]
         sx = inputs[2]
         sy = inputs[3]
 
-        if use_preactivations:
+        if self.use_preactivations:
             z = self.preactivations(features)
         else:
             z = softmax(self.preactivations(features))
@@ -63,7 +65,7 @@ class Kenn(Standard):
         z, _ = self.kenn_layer_2(z, relations, sx, sy)
         z, _ = self.kenn_layer_3(z, relations, sx, sy)
 
-        if use_preactivations:
+        if self.use_preactivations:
             return softmax(z, dim=-1)
         else:
             return z
