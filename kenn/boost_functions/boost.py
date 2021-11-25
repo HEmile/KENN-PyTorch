@@ -73,13 +73,17 @@ class ProductBoostConorm(BoostFunction):
         self.clause_weight.data = torch.clip(self.clause_weight, self.min_weight, self.max_weight)
         clause_matrix = selected_predicates * signs
 
-        m, i = clause_matrix.max(dim=1)  # m: maximum literals' truth values, i: the corresponding vector of indexes
-        t = torch.sigmoid(clause_matrix)  # Activations of the literals' truth values
-        tm = torch.sigmoid(m + self.clause_weight)  # Activations of the highest literals after adding the delta
-        dm = tm - t[np.arange(t.shape[0]), i]  # Deltas on the activations of the highest literal
-        c = dm * (1 - tm)
+        truth_max, i = clause_matrix.max(dim=1)  # m: maximum literals' truth values, i: the corresponding vector of indexes
+        truth = torch.sigmoid(clause_matrix)  # Activations of the literals' truth values
+        new_truth_max = torch.sigmoid(truth_max + self.clause_weight)  # Activations of the highest literals after adding the delta
+        delta_max = new_truth_max - truth[np.arange(truth.shape[0]), i]  # Deltas on the activations of the highest literal
+        c = delta_max * (1 - new_truth_max) # c = delta_i * (1 - truth_i - delta_i) for all i
 
-        deltas = torch.logit((1. + t) / 2. - torch.sqrt(((1. - t + 0.0001) / 2.) ** 2 - c[:, None]), eps=0.0001) - clause_matrix
-        deltas[np.arange(t.shape[0]), i] = self.clause_weight
+        deltas = (1. + truth) / 2. - torch.sqrt((
+                                        (1. - truth + 0.0001) / 2.) ** 2
+                                        - c[:, None])
 
-        return deltas * signs
+        preactivation_delta = torch.logit(deltas, eps=0.0001) - clause_matrix
+        preactivation_delta[np.arange(truth.shape[0]), i] = self.clause_weight
+
+        return preactivation_delta * signs
