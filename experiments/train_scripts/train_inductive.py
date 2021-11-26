@@ -102,8 +102,8 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, boost_function=God
         train_losses.append(t_loss)
         valid_losses.append(v_loss)
 
-        t_accuracy = accuracy(t_predictions, labels[train_indices, :])
-        v_accuracy = accuracy(v_predictions, labels[valid_indices, :])
+        t_accuracy = accuracy(t_predictions, labels[train_indices, :]).detach().numpy()
+        v_accuracy = accuracy(v_predictions, labels[valid_indices, :]).detach().numpy()
 
         train_accuracies.append(t_accuracy)
         valid_accuracies.append(v_accuracy)
@@ -124,19 +124,19 @@ def train_and_evaluate_kenn_inductive(percentage_of_training, boost_function=God
     predictions_test = kenn_model(
         [torch.tensor(features[test_indices, :]), relations_inductive_test, index_x_test, index_y_test], save_debug_data=True)
 
-    test_accuracy = accuracy(predictions_test, torch.tensor(labels[test_indices, :]))
+    test_accuracy = accuracy(predictions_test, labels[test_indices, :].clone().detach()).detach().numpy()
 
-    all_clause_weights = np.array(
-        [clause_weights_1])
+    # all_clause_weights = np.array(
+    #     [clause_weights_1])
     print("Test Accuracy: {}".format(test_accuracy))
     return {
-        "train_losses": train_losses,
+        # "train_losses": train_losses,
         "train_accuracies": train_accuracies,
-        "valid_losses": valid_losses,
+        # "valid_losses": valid_losses,
         "valid_accuracies": valid_accuracies,
-        "test_accuracy": test_accuracy,
-        "clause_weights": all_clause_weights,
-        "kenn_test_predictions": predictions_test}
+        "test_accuracy": test_accuracy}
+        # "clause_weights": all_clause_weights,
+        # "kenn_test_predictions": predictions_test}
 
 
 if __name__ == "__main__":

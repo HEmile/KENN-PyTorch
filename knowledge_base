@@ -1,0 +1,10 @@
+_AI,_Agents,_DB,_HCI,_IR,_ML
+Cite
+
+>
+_:n_AI(x),nCite(x.y),_AI(y)
+_:n_Agents(x),nCite(x.y),_Agents(y)
+_:n_DB(x),nCite(x.y),_DB(y)
+_:n_HCI(x),nCite(x.y),_HCI(y)
+_:n_IR(x),nCite(x.y),_IR(y)
+_:n_ML(x),nCite(x.y),_ML(y)

@@ -54,8 +54,8 @@ def train_and_evaluate_standard(percentage_of_training, verbose=True):
         train_losses.append(t_loss)
         valid_losses.append(v_loss)
 
-        t_accuracy = accuracy(t_predictions, labels[train_indices, :])
-        v_accuracy = accuracy(v_predictions, labels[valid_indices, :])
+        t_accuracy = accuracy(t_predictions, labels[train_indices, :]).detach().numpy()
+        v_accuracy = accuracy(v_predictions, labels[valid_indices, :]).detach().numpy()
 
         train_accuracies.append(t_accuracy)
         valid_accuracies.append(v_accuracy)
@@ -77,12 +77,13 @@ def train_and_evaluate_standard(percentage_of_training, verbose=True):
     preactivations_valid, _ = standard_model(features[valid_indices, :])
     preactivations_test, predictions_test = standard_model(
         features[test_indices, :])
-    test_accuracy = accuracy(predictions_test, labels[test_indices, :])
+    test_accuracy = accuracy(predictions_test, labels[test_indices, :]).detach().numpy()
     print("Test Accuracy: {}".format(test_accuracy))
 
-    nn_results = {"train_losses": train_losses,
+    nn_results = {
+        # "train_losses": train_losses,
                   "train_accuracies": train_accuracies,
-                  "valid_losses": valid_losses,
+                  # "valid_losses": valid_losses,
                   "valid_accuracies": valid_accuracies,
                   "test_accuracy": test_accuracy}
 

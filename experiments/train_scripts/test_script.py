@@ -1,5 +1,8 @@
 import os
 import sys
+
+import torch.random
+
 sys.path.insert(0, os.getcwd())
 
 import numpy as np
@@ -7,7 +10,6 @@ from experiments.preprocessing import generate_dataset
 import experiments.train_scripts.train_baseline as tb
 import experiments.train_scripts.train_inductive as t  # TODO: change in train_lrl
 import pickle
-import tensorflow as tf
 import experiments.settings as s
 import os
 
@@ -21,7 +23,7 @@ def run_tests(
         random_seed=s.RANDOM_SEED):
 
     # SET RANDOM SEED for tensorflow and numpy
-    tf.random.set_seed(random_seed)
+    torch.random.manual_seed(random_seed)
     np.random.seed(random_seed)
 
     training_dimensions = []
@@ -47,7 +49,7 @@ def run_tests(
         #   ...}
 
         for i in range(n_runs):
-            print('Generate new dataset: iteration number ' + str(i))
+            print('Generate new dataset: iteration number ' + str(i), flush=True)
             generate_dataset(td, verbose=False)
 
 
@@ -87,4 +89,4 @@ if __name__ == '__main__':
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    run_tests(n_runs=100, custom_training_dimensions=[0.10, 0.25, 0.50, 0.75, 0.90])
+    run_tests(n_runs=100, custom_training_dimensions=[0.10, 0.25, 0.50, 0.75, 0.90], verbose=False)

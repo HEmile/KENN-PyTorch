@@ -1,7 +1,7 @@
 NUMBER_OF_FEATURES = 3703
 NUMBER_OF_CLASSES = 6
-DATASET_FOLDER = 'experiments/train_scripts/data/CiteSeer/'
-DATASET = 'CiteSeer'
+DATASET_FOLDER = 'experiments/data/CiteSeer/'
+DATASET = 'citeseer'
 # Parameters Editable by the user:
 VALIDATION_PERCENTAGE = 0.2
 EPOCHS = 300
