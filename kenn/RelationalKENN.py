@@ -1,7 +1,7 @@
 import torch
 from kenn import KnowledgeEnhancer
 
-from kenn.boost_functions import GodelBoostConormApprox
+from kenn.boost_functions import GodelBoostConormApprox, GodelBoostConorm
 
 class GroupBy(torch.nn.Module):
     """GroupBy layer
@@ -66,7 +66,8 @@ class Join(torch.nn.Module):
 
         u1 = unary[index1]#torch.gather(unary, 0, torch.unsqueeze(index1, -1))
         u2 = unary[index2]
-        return torch.cat([u1, u2, binary], dim=1)
+
+        return torch.cat([u1, u2, torch.unsqueeze(binary, 1)], dim=1)
 
 class RelationalKenn(torch.nn.Module):
 
@@ -74,9 +75,10 @@ class RelationalKenn(torch.nn.Module):
                  binary_predicates: [str],
                  unary_clauses: [str],
                  binary_clauses: [str],
+                 implication_clauses: [str],
                  activation=lambda x: x,
                  initial_clause_weight=0.5,
-                 boost_function=GodelBoostConormApprox):
+                 boost_function=GodelBoostConorm):
         """Initialize the knowledge base.
         :param unary_predicates: the list of unary predicates names
         :param binary_predicates: the list of binary predicates names
@@ -97,20 +99,29 @@ class RelationalKenn(torch.nn.Module):
 
         self.unary_clauses = unary_clauses
         self.binary_clauses = binary_clauses
+        self.implication_clauses = implication_clauses
         self.activation = activation
 
         self.unary_ke = None
         self.binary_ke = None
+        self.implication_ke = None
         self.join = None
         self.group_by = None
 
         if len(self.unary_clauses) != 0:
+
             self.unary_ke = KnowledgeEnhancer(
                 unary_predicates, self.unary_clauses, initial_clause_weight=initial_clause_weight, boost_function=boost_function)
         if len(self.binary_clauses) != 0:
             self.binary_ke = KnowledgeEnhancer(
                 binary_predicates, self.binary_clauses, initial_clause_weight=initial_clause_weight, boost_function=boost_function)
+            self.join = Join()
+            self.group_by = GroupBy(len(unary_predicates))
 
+        if len(self.implication_clauses) != 0:
+            self.implication_ke = KnowledgeEnhancer(
+                binary_predicates, self.implication_clauses, initial_clause_weight=initial_clause_weight,
+                boost_function=boost_function, implication=True)
             self.join = Join()
             self.group_by = GroupBy(len(unary_predicates))
 
@@ -125,7 +136,6 @@ class RelationalKenn(torch.nn.Module):
         :param index2: a vector containing the indices of the second object
         of the pair referred by binary tensor
         """
-
         if len(self.unary_clauses) != 0:
             deltas_sum, deltas_u_list = self.unary_ke(unary)
             u = unary + deltas_sum
@@ -141,9 +151,21 @@ class RelationalKenn(torch.nn.Module):
             delta_up = torch.zeros(u.shape)
             delta_bp = torch.zeros(binary.shape)
 
+        if len(self.implication_clauses) != 0 and len(binary) != 0:
+            joined_matrix = self.join(u, binary, index1, index2)
+            deltas_sum, deltas_b_list = self.implication_ke(joined_matrix)
+
+            delta_up, delta_bp = self.group_by(u, deltas_sum, index1, index2)
+        elif len(self.implication_clauses) != 0 and len(binary) == 0:
+            deltas_sum, deltas_u_list = self.implication_ke(unary)
+            u = unary + deltas_sum
+
+        #print(delta_up)
+        #print(torch.squeeze(u + delta_up))
+        #print(torch.squeeze(binary + delta_bp))
         return self.activation(u + delta_up), self.activation(binary + delta_bp)
 
-    # This doens't seem to have a PyTorch correspondence
+    # This doesn't seem to have a PyTorch correspondence
     # def get_config(self):
     #     config = super(RelationalKenn, self).get_config()
     #     config.update({'unary_predicates': self.unary_predicates})

@@ -1,11 +1,12 @@
 import torch
-from kenn.ClauseEnhancer import ClauseEnhancer
+from kenn.ClauseEnhancer import ClauseEnhancer, ClauseEnhancerImpl
 
-from kenn.boost_functions import GodelBoostConormApprox
+from kenn.boost_functions import GodelBoostConormApprox, GodelBoostConorm, GodelBoostResiduum
+
 
 class KnowledgeEnhancer(torch.nn.Module):
 
-    def __init__(self, predicates: [str], clauses: [str], initial_clause_weight=0.5, save_training_data=False, boost_function=GodelBoostConormApprox):
+    def __init__(self, predicates: [str], clauses: [str], initial_clause_weight=0.5, save_training_data=False, boost_function=GodelBoostConormApprox, implication=False):
         """Initialize the knowledge base.
         :param predicates: a list of predicates names
         :param clauses: a list of constraints. Each constraint is a string on the form:
@@ -23,24 +24,30 @@ class KnowledgeEnhancer(torch.nn.Module):
         self.clause_enhancers = []
         self.save_training_data = save_training_data
 
-
-        for index, clause in enumerate(clauses):
-            enhancer = ClauseEnhancer(
-                predicates, clause[:-1], initial_clause_weight, boost_function=boost_function)
-            self.clause_enhancers.append(enhancer)
-            self.add_module(f'clause-{index}', enhancer)
+        if not implication:
+            for index, clause in enumerate(clauses):
+                enhancer = ClauseEnhancer(
+                    predicates, clause[:-1], initial_clause_weight, boost_function=boost_function)
+                self.clause_enhancers.append(enhancer)
+                self.add_module(f'clause-{index}', enhancer)
+        else:
+            for index, clause in enumerate(clauses):
+                # Clause Enhancer for Implication is automatically initialized with GodelBoostResiduum
+                enhancer = ClauseEnhancerImpl(
+                    predicates, clause[:-1], initial_clause_weight, boost_function=GodelBoostResiduum)
+                self.clause_enhancers.append(enhancer)
+                self.add_module(f'clause-{index}', enhancer)
 
     def forward(self, ground_atoms: torch.Tensor, using_max=False) -> (torch.Tensor, [torch.Tensor, torch.Tensor]):
         """Improve the satisfaction level of a set of clauses.
         :param ground_atoms: the tensor containing the pre-activation values of the ground atoms
         :return: final delta values"""
-
         # scatter_deltas_list will be the list of deltas for each clause
         # e.g. scatter_deltas_list[0] are the deltas relative to the first clause.
         scatter_deltas_list: [torch.Tensor] = []
         light_deltas_list = []
         weights = []
-        # TODO: parllelize over clauses
+        # TODO: parallelize over clauses
         for enhancer in self.clause_enhancers:
             scattered_delta, delta = enhancer(ground_atoms)
             scatter_deltas_list.append(scattered_delta)

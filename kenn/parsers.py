@@ -1,6 +1,6 @@
 from kenn import Kenn, KnowledgeEnhancer, RelationalKenn
 
-from kenn.boost_functions import GodelBoostConormApprox
+from kenn.boost_functions import GodelBoostConormApprox, GodelBoostConorm, GodelBoostResiduum
 
 def unary_parser(knowledge_file: str, activation=lambda x: x, initial_clause_weight=0.5, save_training_data=False, boost_function=GodelBoostConormApprox):
     """
@@ -55,23 +55,31 @@ def relational_parser(knowledge_file: str, activation=lambda x: x, initial_claus
 
     unary_clauses = []
     binary_clauses = []
+    implication_clauses = []
 
     reading_unary = True
+    reading_binary = True
     for clause in clauses:
+        if clause[0] == '>' and not reading_unary:
+            reading_binary = False
+            continue
         if clause[0] == '>':
             reading_unary = False
             continue
 
         if reading_unary:
             unary_clauses.append(clause)
-        else:
+        elif reading_binary:
             binary_clauses.append(clause)
+        else:
+            implication_clauses.append(clause)
 
     return RelationalKenn(
         u_groundings,
         b_groundings,
         unary_clauses,
         binary_clauses,
+        implication_clauses,
         activation,
         initial_clause_weight,
         boost_function=boost_function)
